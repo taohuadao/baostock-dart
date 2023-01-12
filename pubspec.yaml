@@ -14,4 +14,3 @@ dev_dependencies:
   test: ^1.16.0
 dependencies:
   hashlib: ^1.2.0
-  tcp_client_dart: ^0.2.0
