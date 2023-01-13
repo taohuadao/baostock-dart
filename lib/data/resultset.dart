@@ -2,6 +2,8 @@ import 'dart:core';
 import 'dart:convert';
 import '../common/contants.dart' as cons;
 import 'mesageheader.dart' as msgheader;
+import '../util/socketutil.dart' ;
+
 import 'package:hashlib/hashlib.dart' as hashlib;
 class ResultData {
   String version = cons.BAOSTOCK_CLIENT_VERSION;
@@ -46,7 +48,7 @@ class ResultData {
   // """ 判断是否还有后续数据
   //    :return: 有数据时返回True，当前页没有数据时向服务器请求下一页；没有数据时返回False
   //     """
-  bool Next(){
+  Future<bool> Next() async{
 
     if(data.length == 0) {
       return false;
@@ -56,44 +58,43 @@ class ResultData {
       return true;
     }else{
       // # 当前页没有数据，取下一页数据
-      List<String> msg_body_split = msg_body.split(cons.MESSAGE_SPLIT);
+      List<String> msg_body_split = msgBody.split(cons.MESSAGE_SPLIT);
 
 
       next_page = cur_page_num + 1;
       msg_body_split[2] = str(next_page);
 
-      msg_body =  msg_body_split.join(cons.MESSAGE_SPLIT);
+      msgBody =  msg_body_split.join(cons.MESSAGE_SPLIT);
 
-    msg_header = msgheader.to_message_header(msg_type, len(msg_body));
+    msgHeader = msgheader.to_message_header(msg_type, len(msgBody));
 
-    head_body = msg_header + msg_body;
+    head_body = msgHeader + msgBody;
     int crc32str =  hashlib.crc32code(head_body, Encoding.getByName('utf-8'));
 
     // crc32str = zlib.crc32(bytes(head_body, encoding='utf-8'))
-    receive_data = sock.send_msg(
-    head_body + cons.MESSAGE_SPLIT + str(crc32str))
+    String receiveData = await SocketUtil.getInstance().send_data(head_body + cons.MESSAGE_SPLIT + str(crc32str));
+    if(receiveData.isEmpty){
+      return false;
+    }
 
-    if receive_data is None or receive_data.strip() == "":
-    return False
+    String msgHeader = receiveData.substring(0,cons.MESSAGE_HEADER_LENGTH);
+    String msgBody = receiveData.substring(cons.MESSAGE_HEADER_LENGTH);
 
-    msg_header = receive_data[0:cons.MESSAGE_HEADER_LENGTH]
-    msg_body = receive_data[cons.MESSAGE_HEADER_LENGTH:-1]
+    List<String> headerArr = msgHeader.split(cons.MESSAGE_SPLIT);
+    List<String> bodyArr = msgBody.split(cons.MESSAGE_SPLIT);
+    // # data.version = headerArr[0]
+    // # self.msg_type = headerArr[1]
+    msg_body_length = headerArr[2]
 
-    header_arr = msg_header.split(cons.MESSAGE_SPLIT)
-    body_arr = msg_body.split(cons.MESSAGE_SPLIT)
-    # data.version = header_arr[0]
-    # self.msg_type = header_arr[1]
-    self.msg_body_length = header_arr[2]
-
-    self.error_code = body_arr[0]
-    self.error_msg = body_arr[1]
+    error_code = bodyArr[0]
+    error_msg = bodyArr[1]
 
     if cons.BSERR_SUCCESS == self.error_code:
-    self.method = body_arr[2]
-    self.user_id = body_arr[3]
-    self.cur_page_num = body_arr[4]
-    self.per_page_count = body_arr[5]
-    self.setData(body_arr[6])
+    self.method = bodyArr[2]
+    self.user_id = bodyArr[3]
+    self.cur_page_num = bodyArr[4]
+    self.per_page_count = bodyArr[5]
+    self.setData(bodyArr[6])
     self.cur_row_num = 0
     if len(self.data) == 0:
     return False
