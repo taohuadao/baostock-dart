@@ -19,8 +19,22 @@
     :param options:可选项，00.5.00版本暂未使用
     :return: ResultData()
  */
-void Login({user_id='anonymous', password='123456', options=0}){
 
+import '../data/resultset.dart' as rs;
+import '../common/contants.dart' as cons;
+
+rs.ResultData Login({user_id='anonymous', password='123456', options=0}){
+  rs.ResultData data = rs.ResultData();
+
+  if(user_id == null || user_id.isEmpty){
+    print("用户ID不能为空。");
+    data.error_code = cons.BSERR_USERNAME_EMPTY;
+    data.error_msg = "用户ID不能为空。";
+    return data;
+  }
+
+
+  return data;
 }
 
 
